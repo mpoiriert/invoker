@@ -28,4 +28,12 @@ interface IInvoker
      * @return mixed
      */
     public function invoke($callable,array $parameters = array());
+
+    /**
+     * @param IParameterValueProvider $parameterValueProvider
+     * @param int $priority The priority of the parameter value provider. Lowest is the first one that will be executed
+     *
+     * @return voic
+     */
+    public function registerParameterValueProvider(IParameterValueProvider $parameterValueProvider, $priority = 0);
 }
