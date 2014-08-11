@@ -10,5 +10,5 @@ interface IParameterValueProvider
      * @param ParameterValue $parameterValue
      * @return void
      */
-    public function filterParameter(ParameterValue $parameterValue);
+    public function provideParameterValue(ParameterValue $parameterValue);
 } 
