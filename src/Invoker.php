@@ -2,11 +2,19 @@
 
 namespace Nucleus\Invoker;
 
+use ReflectionParameter;
+
 /**
  * @author Martin Poirier Théorêt <mpoiriert@gmail.com>
  */
 class Invoker implements IInvoker
 {
+    private $providers = array();
+
+    public function __construct()
+    {
+        $this->registerParameterValueProvider(new DefaultParameterValueProvider());
+    }
 
     /**
      * @param $callable
@@ -40,20 +48,30 @@ class Invoker implements IInvoker
                 }
             }
 
-            if ($param->isDefaultValueAvailable()) {
-                $arguments[] = $param->getDefaultValue();
-                continue;
-            }
-
-            throw new UnableToMatchParameterException(
-                UnableToMatchParameterException::formatMessage($callable,$param->name)
-            );
+            $arguments[] = $this->getValueFromProvider($param, $callable);
         }
 
         return call_user_func_array($callable, $arguments);
     }
 
-    private function parameterMatchClass(\ReflectionParameter $param, $parameter)
+    private function getValueFromProvider(ReflectionParameter $param, $callable)
+    {
+        $parameterValue = new ParameterValue($param);
+        foreach($this->providers as $providers) {
+            foreach($providers as $provider) {
+                /* @var $provider IParameterValueProvider */
+                $provider->provideParameterValue($parameterValue);
+                if($parameterValue->isProcessed()) {
+                    return $parameterValue->getValue();
+                }
+            }
+        }
+        throw new UnableToMatchParameterException(
+            UnableToMatchParameterException::formatMessage($callable,$param->name)
+        );
+    }
+
+    private function parameterMatchClass(ReflectionParameter $param, $parameter)
     {
         if (!$param->getClass()) {
             return true;
@@ -82,5 +100,17 @@ class Invoker implements IInvoker
         }
 
         return $reflectionCallable->getParameters();
+    }
+
+    /**
+     * @param IParameterValueProvider $parameterValueProvider
+     * @param int $priority The priority of the parameter value provider. Lowest is the first one that will be executed
+     *
+     * @return voic
+     */
+    public function registerParameterValueProvider(IParameterValueProvider $parameterValueProvider, $priority = 0)
+    {
+        $this->providers[(int)$priority][] = $parameterValueProvider;
+        ksort($this->providers);
     }
 }
